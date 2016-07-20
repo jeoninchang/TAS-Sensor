@@ -26,6 +26,7 @@ var buffers = {};
 
 // This is an async file read
 fs.readFile('conf.xml', 'utf-8', function (err, data) {
+    console.log("Start file read!");
     if (err) {
         console.log("FATAL An error occurred trying to read in the file: " + err);
         console.log("error : set to default for configuration")
@@ -69,34 +70,34 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
             }
         });
 
-	
+
 
 	net.createServer(function (socket) {
 		//console.log('BlueTas connected');
-                
+
 		socket.id = Math.random() * 1000;
-                
+
 		buffers[socket.id] = '';
-                
+
 
 		socket.on('data', function(data) {
-        		//console.log(data);                
+        		//console.log(data);
 			// 'this' refers to the socket calling this callback.
                         buffers[this.id] += data.toString();
-                    	
+
 			console.log("tas_man_count : " + tas_man_count);
 			if(buffers[this.id] != ''){
 				tas_man_count++;
 			}
 			console.log(buffers[this.id]);
-			
+
 			console.log(tas_state);
 			if (tas_state == 'upload') {
 
-	
+
     				for (var i = 0; i < upload_arr.length; i++) {
                 			console.log("upload arr[" + i + "] : " + upload_arr[i].id);
-					var con = buffers[this.id];		
+					var con = buffers[this.id];
 
 					//if (upload_arr[i].id == 'timer') {
                     				var cin = {ctname: upload_arr[i].ctname, con: con};
@@ -106,7 +107,7 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
 				                    upload_client.write(JSON.stringify(cin));
 				                    //break;
 			                //}
-		
+
 		            }
 
 
@@ -115,14 +116,14 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
             			upload_client.connect(useparentport, useparenthostname, function() {
                 			console.log('upload Connected');
                 			tas_man_count = 0;
-                			
+
 					for (var i = 0; i < download_arr.length; i++) {
 						console.log("download arr[" + i + "] : " + download_arr[i].id);
                     				console.log('download Connected - ' + download_arr[i].ctname + ' hello');
                     				var cin = {ctname: download_arr[i].ctname, con: 'hello'};
                     				upload_client.write(JSON.stringify(cin));
-    						
-			
+
+
 
                 				if (tas_man_count >= download_arr.length) {
                     					tas_state = 'upload';
@@ -130,8 +131,8 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
 					}
   			       });
         		}
-			
-            
+
+
         	});
 
 		socket.on('end', function() {
@@ -152,7 +153,7 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
     }
 
 
-	
+
 
 });
 
@@ -160,8 +161,8 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
 var tas_state = 'connect';
 
 
-    
-	
+
+
 
 
 var upload_client = new net.Socket();
@@ -173,7 +174,7 @@ upload_client.on('data', function(data) {
     //client.destroy(); // kill client after server's response
 
     if (tas_state == 'connect' || tas_state == 'reconnect' || tas_state == 'upload') {
-	console.log(data.toString());
+	      //console.log(data.toString());
         var data_arr = data.toString().split('}');
 
 
@@ -252,4 +253,3 @@ sh_serial.serial_event.on('up', function () {
         }
     }
 });
-

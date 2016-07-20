@@ -6,8 +6,11 @@
         <parenthostname>localhost</parenthostname>
         <parentport>3106</parentport>
     </tas>
+    <bluez>
+      <parentport>3110</parentport>
+    </bluez>
     <upload>
-        <ctname>cnt_2</ctname>
+        <ctname>beacondata</ctname>
         <id>timer</id>
     </upload>
     <upload>

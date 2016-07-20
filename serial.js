@@ -11,6 +11,7 @@ var SerialPort;
 var myPort;
 
 exports.open = function(portname, baudrate) {
+    console.log("serial _ Function - open");
     SerialPort = serialport.SerialPort;
 
     myPort = new SerialPort(portname, {
@@ -71,10 +72,9 @@ var interval = setInterval(function () {
 
 
 function saveLastestData(data) {
+    console.log("serial _ Function - saveLastestData");
     //var c = util.format('%s', data);
     //console.log(data);
-
-
 
     //g_sink_buf_index = g_sink_buf_index + 1;
     //console.log(g_sink_buf_index);
@@ -133,5 +133,3 @@ function showError(error) {
     }
 
 }
-
-
