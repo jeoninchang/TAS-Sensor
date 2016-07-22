@@ -10,7 +10,7 @@ var xml2js = require('xml2js');
 
 
 var sh_timer = require('./timer');
-var sh_serial = require('./serial');
+var sh_serial = require('./mock_serial');
 
 var usecomport = '';
 var usebaudrate = '';
@@ -46,7 +46,7 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
                 usebaudrate = conf.tas.baudrate;
                 useparenthostname = conf.tas.parenthostname;
                 useparentport = conf.tas.parentport;
-		usebluzport = conf.bluez.parentport;
+		            usebluzport = conf.bluez.parentport;
 
                 if(conf.upload != null) {
                     if (conf.upload['ctname'] != null) {
