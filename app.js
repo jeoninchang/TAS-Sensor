@@ -36,7 +36,7 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
         parser.parseString(data, function (err, result) {
             if (err) {
                 console.log("Parsing An error occurred trying to read in the file: " + err);
-                console.log("error : set to default for configuration")
+                console.log("error : set to default for configuration");
             }
             else {
                 var jsonString = JSON.stringify(result);
@@ -70,104 +70,84 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
             }
         });
 
+        // Listen to bluez data
+	      net.createServer(function (socket) {
+		        //console.log('BlueTas connected');
+
+		        socket.id = Math.random() * 1000;
+
+		        buffers[socket.id] = '';
 
 
-	net.createServer(function (socket) {
-		//console.log('BlueTas connected');
+		        socket.on('data', function(data) {
+        		    //console.log(data);
+                // 'this' refers to the socket calling this callback.
+                buffers[this.id] += data.toString();
 
-		socket.id = Math.random() * 1000;
+			          //console.log("tas_man_count : " + tas_man_count);
+			          if(buffers[this.id] != ''){
+				            tas_man_count++;
+			          }
+			          //console.log(buffers[this.id]);
 
-		buffers[socket.id] = '';
+			          console.log(tas_state);
+			          if (tas_state == 'upload') {
+    				          for (var i = 0; i < upload_arr.length; i++) {
+                			     console.log("upload arr[" + i + "] : " + upload_arr[i].id);
+					                 var con = buffers[this.id];
 
+					                 //if (upload_arr[i].id == 'timer') {
+                    	         var cin = {ctname: upload_arr[i].ctname, con: con};
 
-		socket.on('data', function(data) {
-        		//console.log(data);
-			// 'this' refers to the socket calling this callback.
-                        buffers[this.id] += data.toString();
-
-			console.log("tas_man_count : " + tas_man_count);
-			if(buffers[this.id] != ''){
-				tas_man_count++;
-			}
-			console.log(buffers[this.id]);
-
-			console.log(tas_state);
-			if (tas_state == 'upload') {
-
-
-    				for (var i = 0; i < upload_arr.length; i++) {
-                			console.log("upload arr[" + i + "] : " + upload_arr[i].id);
-					var con = buffers[this.id];
-
-					//if (upload_arr[i].id == 'timer') {
-                    				var cin = {ctname: upload_arr[i].ctname, con: con};
-
- 				                   console.log(JSON.stringify(cin) + ' ---->')
-;
+ 				                    console.log(JSON.stringify(cin) + ' ---->');
 				                    upload_client.write(JSON.stringify(cin));
 				                    //break;
-			                //}
-
-		            }
-
-
-                	}else if(tas_state == 'connect' || tas_state == 'reconnect') {
-
+			                      //}
+		                  }
+               }else if(tas_state == 'connect' || tas_state == 'reconnect') {
             			upload_client.connect(useparentport, useparenthostname, function() {
-                			console.log('upload Connected');
-                			tas_man_count = 0;
+                	    console.log('upload Connected');
+                	    tas_man_count = 0;
 
-					for (var i = 0; i < download_arr.length; i++) {
-						console.log("download arr[" + i + "] : " + download_arr[i].id);
+					            for (var i = 0; i < download_arr.length; i++) {
+						                console.log("download arr[" + i + "] : " + download_arr[i].id);
                     				console.log('download Connected - ' + download_arr[i].ctname + ' hello');
                     				var cin = {ctname: download_arr[i].ctname, con: 'hello'};
                     				upload_client.write(JSON.stringify(cin));
 
 
 
-                				if (tas_man_count >= download_arr.length) {
+                				   if (tas_man_count >= download_arr.length) {
                     					tas_state = 'upload';
-                				}
-					}
-  			       });
-        		}
+                				   }
+					           }
+  			         });
+        		 }
 
 
         	});
 
-		socket.on('end', function() {
-                        console.log('end');
-                    });
-                    socket.on('close', function() {
-                        console.log('close');
-                    });
-                    socket.on('error', function(e) {
-                        console.log('error ', e);
-                    });
-                    //socket.write('hello from tcp server');
-
+		      socket.on('end', function() {
+              console.log('end');
+          });
+          socket.on('close', function() {
+              console.log('close');
+          });
+          socket.on('error', function(e) {
+              console.log('error ', e);
+          });
+          //socket.write('hello from tcp server');
        }).listen(usebluzport, function() {
                     console.log('TCP Server ( '+ uselocal+ ' ) is listening on port ' + usebluzport);
        });
-
     }
-
-
-
-
 });
 
 
 var tas_state = 'connect';
 
 
-
-
-
-
 var upload_client = new net.Socket();
-
-
 
 
 upload_client.on('data', function(data) {

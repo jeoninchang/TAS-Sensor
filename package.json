@@ -15,5 +15,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Il Yeup Ahn, KETI",
+  "modifier": "Young min Kim",
   "license": "ISC"
 }
