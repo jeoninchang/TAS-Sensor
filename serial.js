@@ -2,7 +2,6 @@
  * Created by ryeubi on 2015-08-31.
  */
 
-
 var util = require('util');
 var os = require('os');
 var serialport = require('serialport');
@@ -10,14 +9,16 @@ var serialport = require('serialport');
 var SerialPort;
 var myPort;
 
+var portStatus = "close";
+
+
 exports.open = function(portname, baudrate) {
-    console.log("serial _ Function - open");
     SerialPort = serialport.SerialPort;
 
     myPort = new SerialPort(portname, {
         baudRate : baudrate,
-        buffersize : 1
-        //parser : serialport.parsers.readline("\r\n")
+        buffersize : 1,
+        //parser : serialport.parsers.readline("22")
     });
 
     myPort.on('open', showPortOpen);
@@ -31,8 +32,9 @@ exports.open = function(portname, baudrate) {
 var cur_c = '';
 var pre_c = '';
 var g_sink_buf = '';
-var g_sink_ready;
-var g_sink_buf_start = 0;
+var g_sink_ready = [];
+var current_positon = 0;
+
 
 
 exports.g_down_buf = '';
@@ -51,64 +53,58 @@ serialport.list(function (err, ports) {
 
 function showPortOpen() {
     console.log('port open. Data rate: ' + myPort.options.baudRate);
+    portStatus = "open";
 }
 
 var counter = 0;
-var interval = setInterval(function () {
-    //console.log('Bar', counter);
-    //counter++;
+var sensorTick = setInterval(function () {
+    if(portStatus == "open"){
+        try{
+            var buf = new Buffer(4);
+            buf[0] = 0x11;
+            buf[1] = 0x01;
+            buf[2] = 0x01;
+            buf[3] = 0xED;
+            myPort.write(buf);
+        }catch(exp) {
+            console.log(exp.toString());
+        }
+    }
+}, 2000);
 
-    //console.log(os.platform());
+var temp_data = new Array(8);
 
- //   if (util.format("%s", os.platform()) == 'win32') {
- //       myPort.open();
- //   }
-
-
-//    if (counter >= 3) {
-//        clearInterval(interval);
-//    }
-}, 10000);
-
+var count = 0;
 
 function saveLastestData(data) {
-    console.log("serial _ Function - saveLastestData");
-    //var c = util.format('%s', data);
-    //console.log(data);
 
-    //g_sink_buf_index = g_sink_buf_index + 1;
-    //console.log(g_sink_buf_index);
+    count ++;
+    //console.log('length ' + data.length);
+    var val = data.readUInt16LE(0, true);
+    //console.log('count -> ' + count + ' data-> ' + val );
 
-    if (data == '{') {
-//        console.log('%s', data);
-        g_sink_buf_index = 0;
-        g_sink_buf_start = 1;
-        pre_c = '';
-        cur_c = util.format('%s', data);
-        g_sink_buf = pre_c + cur_c;
-        pre_c = g_sink_buf;
-    }
-    else if (data ==  '}') {
-        //console.log('%s', data);
-        cur_c = util.format('%s', data);
-        g_sink_buf = pre_c + cur_c;
-        pre_c = g_sink_buf;
+    g_sink_ready.push(val);
 
-        exports.g_sink_buf = g_sink_buf;
+    if(count % 8 == 0){
+        //console.log('===================');
+        console.log(g_sink_ready);
 
-        exports.serial_event.emit('up');
+            var p1 = g_sink_ready[0];
+            var p2 = g_sink_ready[1];
+            var p3 = g_sink_ready[2];
+            var p4 = g_sink_ready[3];
+            var p5 = g_sink_ready[4];
+            var p6 = g_sink_ready[5];
+            var p7 = g_sink_ready[6];
+            var p8 = g_sink_ready[7];
 
-        exports.myPort = myPort;
+            var nValue = p4 * 256 + p5;
 
-        g_sink_buf_start = 0;
-        g_sink_ready = 1;
-        //g_sink_buf.toString('ascii');
-    }
-    else if (g_sink_buf_start == 1) {
-        //       console.log('%s', data);
-        cur_c = util.format('%s', data);
-        g_sink_buf = pre_c + cur_c;
-        pre_c = g_sink_buf;
+        console.log(nValue);
+
+        g_sink_ready = [];
+
+        exports.serial_event.emit('up', nValue);
     }
 }
 
@@ -131,5 +127,6 @@ function showError(error) {
     else {
         console.log('Serial port error : ' + error);
     }
-
 }
+
+

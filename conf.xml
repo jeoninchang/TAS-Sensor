@@ -1,24 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <m2m:conf xmlns:m2m="http://www.onem2m.org/xml/protocols" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bluez>
+        <parentport>3110</parentport>
+    </bluez>
     <tas>
         <comport>COM7</comport>
-        <baudrate>115200</baudrate>
+        <baudrate>9600</baudrate>
         <parenthostname>localhost</parenthostname>
-        <parentport>3106</parentport>
+        <parentport>7622</parentport>
     </tas>
-    <bluez>
-      <parentport>3110</parentport>
-    </bluez>
     <upload>
-        <ctname>beacondata</ctname>
-        <id>timer</id>
-    </upload>
-    <upload>
-        <ctname>ss_1</ctname>
-        <id>fe80:0000:0000:0000:0212:4b00:0235:bc89</id>
+        <ctname>beacon01</ctname>
+        <id>fe80:0001:0000:0000:0212:4b00:0235:bc89</id>
     </upload>
     <download>
-        <ctname>ss_1_ctrl</ctname>
-        <id>fe80:0000:0000:0000:0212:4b00:0235:bc89</id>
+        <ctname>beacon01_ctrl</ctname>
+        <id>fe80:0001:0000:0000:0212:4b00:0235:bc89</id>
     </download>
 </m2m:conf>

@@ -8,16 +8,14 @@ var fs = require('fs');
 var xml2js = require('xml2js');
 
 
-
 var sh_timer = require('./timer');
-var sh_serial = require('./mock_serial');
 
 var usecomport = '';
 var usebaudrate = '';
 var useparentport = '';
 var useparenthostname = '';
-var usebluzport = '';
-var uselocal ='127.0.0.1';
+var usebluezport = '';
+var uselocal = '127.0.0.1';
 
 var upload_arr = [];
 var download_arr = [];
@@ -26,7 +24,6 @@ var buffers = {};
 
 // This is an async file read
 fs.readFile('conf.xml', 'utf-8', function (err, data) {
-    console.log("Start file read!");
     if (err) {
         console.log("FATAL An error occurred trying to read in the file: " + err);
         console.log("error : set to default for configuration")
@@ -36,7 +33,7 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
         parser.parseString(data, function (err, result) {
             if (err) {
                 console.log("Parsing An error occurred trying to read in the file: " + err);
-                console.log("error : set to default for configuration");
+                console.log("error : set to default for configuration")
             }
             else {
                 var jsonString = JSON.stringify(result);
@@ -46,7 +43,9 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
                 usebaudrate = conf.tas.baudrate;
                 useparenthostname = conf.tas.parenthostname;
                 useparentport = conf.tas.parentport;
-		            usebluzport = conf.bluez.parentport;
+
+		// bluez port
+		usebluezport = conf.bluez.parentport;
 
                 if(conf.upload != null) {
                     if (conf.upload['ctname'] != null) {
@@ -66,79 +65,63 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
                     }
                 }
 
-                sh_serial.open(usecomport, usebaudrate);
             }
         });
 
-        // Listen to bluez data
-	      net.createServer(function (socket) {
-		        //console.log('BlueTas connected');
+	net.createServer(function (socket) {
+                socket.id = Math.random() * 1000;
 
-		        socket.id = Math.random() * 1000;
+                buffers[socket.id] = '';
 
-		        buffers[socket.id] = '';
+                socket.on('data', function(data) {
+                        // 'this' refers to the socket calling this callback.
+                        buffers[this.id] += data.toString();
 
+                        if(buffers[this.id] != ''){
+                                tas_man_count++;
+                        }
 
-		        socket.on('data', function(data) {
-        		    //console.log(data);
-                // 'this' refers to the socket calling this callback.
-                buffers[this.id] += data.toString();
+                        if (tas_state == 'upload') {
+                                for (var i = 0; i < upload_arr.length; i++) {
+                                        var con = buffers[this.id];
 
-			          //console.log("tas_man_count : " + tas_man_count);
-			          if(buffers[this.id] != ''){
-				            tas_man_count++;
-			          }
-			          //console.log(buffers[this.id]);
+                                        var cin = {ctname: upload_arr[i].ctname, con: con};
 
-			          console.log(tas_state);
-			          if (tas_state == 'upload') {
-    				          for (var i = 0; i < upload_arr.length; i++) {
-                			     console.log("upload arr[" + i + "] : " + upload_arr[i].id);
-					                 var con = buffers[this.id];
+                                        console.log(JSON.stringify(cin) + ' ---->');
 
-					                 //if (upload_arr[i].id == 'timer') {
-                    	         var cin = {ctname: upload_arr[i].ctname, con: con};
+                                        upload_client.write(JSON.stringify(cin));
+                                 }
+                        }else if(tas_state == 'connect' || tas_state == 'reconnect') {
+                                upload_client.connect(useparentport, useparenthostname, function() {
+                                        console.log('upload Connected');
+                                        tas_man_count = 0;
 
- 				                    console.log(JSON.stringify(cin) + ' ---->');
-				                    upload_client.write(JSON.stringify(cin));
-				                    //break;
-			                      //}
-		                  }
-               }else if(tas_state == 'connect' || tas_state == 'reconnect') {
-            			upload_client.connect(useparentport, useparenthostname, function() {
-                	    console.log('upload Connected');
-                	    tas_man_count = 0;
+                                        for (var i = 0; i < download_arr.length; i++) {
+                                                console.log('download Connected - ' + download_arr[i].ctname + ' hello');
+                                                var cin = {ctname: download_arr[i].ctname, con: 'hello'};
+                                                upload_client.write(JSON.stringify(cin));
 
-					            for (var i = 0; i < download_arr.length; i++) {
-						                console.log("download arr[" + i + "] : " + download_arr[i].id);
-                    				console.log('download Connected - ' + download_arr[i].ctname + ' hello');
-                    				var cin = {ctname: download_arr[i].ctname, con: 'hello'};
-                    				upload_client.write(JSON.stringify(cin));
+                                                if (tas_man_count >= download_arr.length) {
+                                                        tas_state = 'upload';
+                                                }
+                                        }
+                               });
+                        }
+                });
 
+                socket.on('end', function() {
+                        console.log('end');
+                    });
+                    socket.on('close', function() {
+                        console.log('close');
+                    });
+                    socket.on('error', function(e) {
+                        console.log('error ', e);
+                    });
+                    //socket.write('hello from tcp server');
 
-
-                				   if (tas_man_count >= download_arr.length) {
-                    					tas_state = 'upload';
-                				   }
-					           }
-  			         });
-        		 }
-
-
-        	});
-
-		      socket.on('end', function() {
-              console.log('end');
-          });
-          socket.on('close', function() {
-              console.log('close');
-          });
-          socket.on('error', function(e) {
-              console.log('error ', e);
-          });
-          //socket.write('hello from tcp server');
-       }).listen(usebluzport, function() {
-                    console.log('TCP Server ( '+ uselocal+ ' ) is listening on port ' + usebluzport);
+       }).listen(usebluezport, function() {
+                    console.log('TCP Server ( '+ uselocal+ ' ) is listening on port ' + usebluezport);
        });
     }
 });
@@ -146,18 +129,21 @@ fs.readFile('conf.xml', 'utf-8', function (err, data) {
 
 var tas_state = 'connect';
 
-
 var upload_client = new net.Socket();
-
+//upload_client.connect(parent_port, '127.0.0.1', function() {
+//    console.log('upload Connected');
+//    for (var i = 0; i < download_arr.length; i++) {
+//        var cin = {ctname: download_arr[i].ctname, con: 'hello'};
+//        upload_client.write(JSON.stringify(cin));
+//    }
+//    tas_state = 'reconnect';
+//});
 
 upload_client.on('data', function(data) {
     //client.destroy(); // kill client after server's response
 
     if (tas_state == 'connect' || tas_state == 'reconnect' || tas_state == 'upload') {
-	      //console.log(data.toString());
         var data_arr = data.toString().split('}');
-
-
         for(var i = 0; i < data_arr.length-1; i++) {
             var line = data_arr[i];
             line += '}';
@@ -186,8 +172,6 @@ upload_client.on('data', function(data) {
                     for (j = 0; j < download_arr.length; j++) {
                         if (download_arr[j].ctname == sink_obj.ctname) {
                             cin = JSON.stringify({id: download_arr[i].id, con: sink_obj.con});
-                            sh_serial.g_down_buf = cin;
-                            sh_serial.serial_event.emit('down');
                             break;
                         }
                     }
@@ -208,28 +192,40 @@ upload_client.on('close', function() {
 });
 
 
-
 var count = 0;
 var tick_count = 0;
 var tas_man_count = 0;
-
-var content = '';
-
-
-sh_serial.serial_event.on('up', function () {
-    if(tas_state == 'upload') {
-        console.log(sh_serial.g_sink_buf);
-
-        // parsing sensor data, manage id according with ctname
-        var sink_str = util.format('%s', sh_serial.g_sink_buf);
-        var sink_obj = JSON.parse(sink_str);
-
-        for(var i = 0; i < upload_arr.length; i++) {
-            if(upload_arr[i].id == sink_obj.id) {
-                var cin = {ctname: upload_arr[i].ctname, con: sink_obj.con};
-                upload_client.write(JSON.stringify(cin));
-                break;
+sh_timer.timer.on('tick', function() {
+    tick_count++;
+    if((tick_count % 2) == 0) {
+        if (tas_state == 'upload') {
+            var con = 'TAS' + count++ + ',' + '55.2';
+            for (var i = 0; i < upload_arr.length; i++) {
+                if (upload_arr[i].id == 'timer') {
+                    var cin = {ctname: upload_arr[i].ctname, con: con};
+                    console.log(JSON.stringify(cin) + ' ---->');
+                    upload_client.write(JSON.stringify(cin));
+                    break;
+                }
             }
+        }
+    }
+
+    if((tick_count % 3) == 0) {
+        if(tas_state == 'connect' || tas_state == 'reconnect') {
+            upload_client.connect(useparentport, useparenthostname, function() {
+                console.log('upload Connected');
+                tas_man_count = 0;
+                for (var i = 0; i < download_arr.length; i++) {
+                    console.log('download Connected - ' + download_arr[i].ctname + ' hello');
+                    var cin = {ctname: download_arr[i].ctname, con: 'hello'};
+                    upload_client.write(JSON.stringify(cin));
+                }
+
+                if (tas_man_count >= download_arr.length) {
+                    tas_state = 'upload';
+                }
+            });
         }
     }
 });
