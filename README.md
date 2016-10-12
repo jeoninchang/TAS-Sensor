@@ -10,9 +10,3 @@ Temperature-Humidity sensor : DHT11
 Camera module : NoIR Camera V2
 CO_2 sensor
 Beacon : RECO beacon
-
-
-## Environment
-Raspberry Pi  - Arduino - Sensor
-              - CO_2 Sensor
-              - Camera Module
