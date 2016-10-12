@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<m2m:conf xmlns:m2m="http://www.onem2m.org/xml/protocols" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <arduino>
+        <parentport>3120</parentport>
+    </arduino>
+    <tas>
+        <comport>COM7</comport>
+        <baudrate>9600</baudrate>
+        <parenthostname>localhost</parenthostname>
+        <parentport>7622</parentport>
+    </tas>
+    <upload>
+        <ctname>dust</ctname>
+        <id>fe80:0011:2200:0000:0212:4b00:0235:bc89</id>
+    </upload>
+    <download>
+        <ctname>dust_ctrl</ctname>
+        <id>fe80:0011:2200:0000:0212:4b00:0235:bc89</id>
+    </download>
+</m2m:conf>
